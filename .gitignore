@@ -1,0 +1,11 @@
+project/project/
+project/target/
+target/
+src/main/resources/local.conf
+
+*.log
+*.iml
+*.ipr
+*.iws
+.idea
+.bsp
