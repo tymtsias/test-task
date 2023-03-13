@@ -1,36 +1,30 @@
 package com
-import cats.effect.IO
+
 import cats.effect.unsafe.implicits.global
-import com.Models.Category.Jewelery
-import com.linecorp.armeria.common.Request
-import sttp.client3.RequestT
-import sttp.client3.armeria.cats.ArmeriaCatsBackend
+import cats.effect.{ExitCode, IO, IOApp}
+import com.services.{DomainService, MockedVstatService, RealVstatService, TrustpilotService}
+import org.http4s.server.blaze.BlazeServerBuilder
 import sttp.client3._
-import sttp.model.Uri
-import sttp.model.Uri.Authority
-import sttp.model.Uri.QuerySegment.KeyValue
-import io.circe.syntax._
+import sttp.client3.armeria.cats.ArmeriaCatsBackend
 
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.{global => scalaGlobal}
-import scala.concurrent.duration.Duration
-import io.circe.parser._
-
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import scala.util.Try
-
-object Main extends App {
-  val backend: SttpBackend[IO, Any] = ArmeriaCatsBackend[IO]()
-  val trustpilotService = new TrustpilotService(backend)
-  val future = trustpilotService.getByCategory(Jewelery).unsafeToFuture()
-
-  future.foreach(println)
+import scala.concurrent.ExecutionContext
 
 
-  Await.result(future, Duration.Inf)
-  ArmeriaCatsBackend.usingDefaultClient[IO]()
+object Main extends IOApp {
+  override def run(args: List[String]): IO[ExitCode] = {
+    val backend: SttpBackend[IO, Any] = ArmeriaCatsBackend[IO]()
+    val vstatService = if (Conf.Vstat.useRealService) new RealVstatService(backend) else new MockedVstatService
+    val trustpilotService = new TrustpilotService(backend)
+    val domainService = new DomainService(vstatService, trustpilotService)
+    val httpServer = new HttpServer(domainService)
 
+    BlazeServerBuilder[IO](ExecutionContext.global)
+      .bindHttp(Conf.Http.port, Conf.Http.host)
+      .withHttpApp(httpServer.routes.orNotFound)
+      .resource
+      .use(_ => IO.never)
+      .as(ExitCode.Success)
+  }
 }
 
 
