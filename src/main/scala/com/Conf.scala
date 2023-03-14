@@ -3,16 +3,16 @@ package com
 import com.typesafe.config.ConfigFactory
 
 object Conf {
-  val configuration = ConfigFactory.load()
+  lazy val configuration = ConfigFactory.load()
 
   object Http {
-    val host = configuration.getString("http.host")
-    val port = configuration.getInt("http.port")
+    lazy val host = configuration.getString("http.host")
+    lazy val port = configuration.getInt("http.port")
   }
 
   object Vstat {
-    val useRealService = configuration.getBoolean("vstat.useRealService")
-    val mockedResponse = configuration.getInt("vstat.mockedResponse")
-    val cookie = configuration.getString("vstat.cookie")
+    lazy val useRealService = configuration.getBoolean("vstat.useRealService")
+    lazy val mockedResponse = configuration.getInt("vstat.mockedResponse")
+    lazy val cookie = configuration.getString("vstat.cookie")
   }
 }
